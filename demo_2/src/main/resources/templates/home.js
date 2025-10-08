@@ -1,0 +1,3 @@
+function myAlarm() {
+    alert("Alert!!!")
+}
