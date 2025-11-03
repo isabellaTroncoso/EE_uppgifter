@@ -1,0 +1,163 @@
+1️⃣ Varför slår vi av CSRF-skyddet?
+
+CSRF (Cross-Site Request Forgery) skydd hindrar att attacker skickar falska POST/PUT/DELETE-förfrågningar åt användare.
+
+Vi slår ofta av CSRF under utveckling eller vid API-baserade applikationer som inte använder traditionella formulär (t.ex. REST med JWT).
+
+I vanliga webbappar bör CSRF vara påslaget för säkerhet.
+
+2️⃣ Vilken nytta har “cookies”?
+
+Cookies används för att lagra små data på klienten. De används ofta för:
+
+Sessioner (t.ex. JSESSIONID)
+
+Hålla användare inloggade
+
+Spårning och inställningar
+
+Cookies skickas automatiskt med varje HTTP-förfrågan till samma domän.
+
+3️⃣ Vad är ett “token”? (ex: CSRF-token)
+
+Ett token är en unik sträng som används för att verifiera att en viss åtgärd är legitimerad.
+
+CSRF-token skyddar mot falska formulärförfrågningar.
+
+Tokens används också i API:er som autentisering (t.ex. JWT).
+
+4️⃣ När använder du dig av JSESSIONID?
+
+JSESSIONID är en cookie som identifierar användarens session på servern.
+
+Den skapas när användaren först ansluter och används för att hålla reda på sessionstillstånd, t.ex. inloggning, varukorg eller user preferences.
+
+5️⃣ Hur samspelar JSESSIONID med HTTPSession?
+
+JSESSIONID är referensen till serverns HTTPSession.
+
+När servern får en förfrågan med JSESSIONID, hämtas den samma sessionen från minnet.
+
+HTTPSession lagrar server-sidans data (user object, roles, etc.) medan JSESSIONID knyter klienten till sessionen.
+
+
+1️⃣ Vad är SessionManagement?
+
+SessionManagement är hur en applikation spårar användares tillstånd mellan olika HTTP-förfrågningar. Eftersom HTTP är stateless (ingen minne mellan requests) används sessions för att:
+
+Hålla användare inloggade
+
+Lagra användarspecifik data (exempelvis varukorg)
+
+Hantera säkerhet och roller
+
+I Spring Security kan du konfigurera detta med sessionManagement() i din SecurityConfig.
+
+2️⃣ När hade vi behövt flertal vs 1 maximumSession?
+
+maximumSessions(1) → endast en session per användare tillåts.
+
+Används för säkerhet: t.ex. om du vill att en användare inte kan logga in från flera enheter samtidigt.
+
+Hindrar delning av inloggning.
+
+Flera sessions (ingen begränsning eller hög max) → tillåter samma användare att logga in från flera enheter samtidigt.
+
+Bra i vanliga webbappar där användaren kan vara inloggad på dator + mobil samtidigt.
+
+3️⃣ Statefulness vs Statelessness
+
+Stateful (session-baserad) → servern sparar sessionstillstånd, t.ex. HTTPSession.
+
+Stateless (token-baserad, t.ex. JWT) → servern sparar ingen session, klienten skickar token med varje request.
+
+
+
+
+
+1️⃣ Vad gör koden?
+.formLogin(httpSecurityFormLoginConfigurer -> {
+    httpSecurityFormLoginConfigurer
+        .loginPage("/login").permitAll()           // Egen login-sida
+        .loginProcessingUrl("/authenticate")       // URL som tar emot POST från login-formuläret
+        .defaultSuccessUrl("/", true)              // Dit användaren skickas vid lyckad login
+        .failureUrl("/login?error")                // Dit användaren skickas vid fel lösenord/användarnamn
+        .usernameParameter("username")             // Namnet på inputfältet för användarnamn
+        .passwordParameter("password");            // Namnet på inputfältet för lösenord
+})
+
+
+loginPage("/login") → vi använder en egen login-sida istället för default.
+
+loginProcessingUrl("/authenticate") → där Spring Security tar emot POST-data från login-formuläret.
+
+defaultSuccessUrl("/", true) → användaren skickas alltid till / efter login.
+
+failureUrl("/login?error") → om inloggning misslyckas hamnar användaren här.
+
+usernameParameter och passwordParameter → anger namnen på input-fälten i HTML-formuläret som Spring Security ska läsa.
+
+2️⃣ När behöver vi ändra usernameParameter eller passwordParameter?
+
+Vi ändrar dessa endast om namn-attributen i vårt HTML-formulär inte heter username och password.
+
+Exempel:
+
+<input type="text" name="userEmail" />
+<input type="password" name="passcode" />
+
+
+I detta fall måste vi uppdatera Spring Security så här:
+
+.usernameParameter("userEmail")
+.passwordParameter("passcode")
+
+
+Om vi inte ändrar, kommer Spring Security inte att hitta fälten och login kommer att misslyckas.
+
+
+
+1️⃣ Vad gör koden?
+.rememberMe(rememberMeConfigurer -> rememberMeConfigurer
+        .key("some-secure-key")                 // Hemlig nyckel för att signera token
+        .rememberMeParameter("remember-me")     // Namnet på checkbox i HTML-formuläret
+        .tokenValiditySeconds(10)               // Hur länge token/cookie är giltig (sekunder)
+        .userDetailsService(userDetailsService) // Service som hämtar användarinformation
+);
+
+
+key("...") → en hemlig nyckel som används för att signera token, så den inte kan manipuleras.
+
+rememberMeParameter("remember-me") → anger namnet på checkboxen i formuläret.
+
+tokenValiditySeconds(10) → hur länge cookien är giltig (exempelvis 10 sekunder här, normalt längre, t.ex. flera dagar).
+
+userDetailsService(userDetailsService) → behövs för att ladda användarinformation när cookien används.
+
+2️⃣ Hur används en remember-me cookie?
+
+Användaren loggar in och kryssar i checkboxen “Remember Me”.
+
+Spring Security skapar en cookie i användarens webbläsare.
+
+Cookien innehåller en token som identifierar användaren (krypterad / signerad med key).
+
+Nästa gång användaren besöker sidan, även om sessionen har gått ut, läser Spring Security cookien.
+
+Om token är giltig, loggas användaren in automatiskt.
+
+3️⃣ Nyttan med remember-me
+
+Gör att användaren inte behöver logga in varje gång.
+
+Förbättrar användarvänligheten på webbplatser med frekvent besök.
+
+Kombineras ofta med persistent login, där token lagras i databasen och kan spärras vid behov.
+
+4️⃣ När kommer det till användning?
+
+Webbplatser där användaren ofta återkommer, t.ex. sociala medier, forum, webbappar.
+
+När stateful sessions används men man vill ge en “stay logged in”-funktion.
+
+När användaren inte vill skriva in lösenord varje gång, men ändå ska vara säker.

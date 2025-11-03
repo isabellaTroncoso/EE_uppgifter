@@ -1,4 +1,4 @@
-package com.example.demo_6.user;
+package com.example.demo_6.user.authority;
 
 public enum UserRoleName {
 

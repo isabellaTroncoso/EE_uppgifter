@@ -1,4 +1,4 @@
-package com.example.demo_6.user;
+package com.example.demo_6.user.authority;
 
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import static com.example.demo_6.user.UserPermission.*;
+import static com.example.demo_6.user.authority.UserPermission.*;
 
 public enum UserRole {
 
