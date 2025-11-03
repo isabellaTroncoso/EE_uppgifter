@@ -1,5 +1,9 @@
 package com.example.demo_6.user.authority;
 
+/* Handles the ROLE_ concatenation
+ *   This ENUM is essentially just a value holder
+ * */
+
 public enum UserRoleName {
 
     GUEST("ROLE_GUEST"),

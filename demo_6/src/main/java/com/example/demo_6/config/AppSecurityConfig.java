@@ -1,56 +1,89 @@
 package com.example.demo_6.config;
-import com.example.demo_6.user.UserRole;
+
+import com.example.demo_6.user.authority.UserRole;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+
+import java.util.concurrent.TimeUnit;
 
 @Configuration
 @EnableWebSecurity
 public class AppSecurityConfig {
 
+    private final PasswordEncoder passwordEncoder; // This will inject AppPasswordConfig BY DEFAULT (No Bean Collision)
+    private final UserDetailsService userDetailsService;    // CustomUserDetailsService
+
+    @Autowired
+    public AppSecurityConfig(PasswordEncoder passwordEncoder, UserDetailsService userDetailsService) {
+        this.passwordEncoder = passwordEncoder;
+        this.userDetailsService = userDetailsService;
+    }
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
 
-        // TODO - Question: Why does /adminpage lead to a 403 forbidden?
+        /* TODO - If we try to move to a resource that isn't available, we have to login to get a 404
+         *   This is unclear and can be made better
+         *   Why login to see a 404? Is this secure?
+         * */
+
+        // TODO Memory Storage Attack - https://docs.spring.io/spring-security/reference/servlet/authentication/passwords/erasure.html
+
         httpSecurity
-                .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(
-                        auth -> auth
-                                .requestMatchers("/").permitAll()       // Allow localhost:8080/
-                                .requestMatchers("/debug").permitAll()  // RestController for Debugging
-                                .requestMatchers("/admin").hasAuthority(UserRole.ADMIN.getUserRoleName())
+                .csrf(csrfConfigurer -> csrfConfigurer.disable())   // Disable for DEBUGGING PURPOSES
+                .authorizeHttpRequests( auth -> auth
+                        // .requestMatchers() // TODO - check against specific HTTP METHOD
+                        .requestMatchers("/", "/register", "/static/**").permitAll()  // Allow localhost:8080/
+                        .requestMatchers("/debug/**").permitAll()                     // RestController for Debugging
+                        .requestMatchers("/admin", "/tools").hasRole("ADMIN")
+                        .requestMatchers("/user").hasRole(UserRole.USER.name())
+                        .anyRequest().authenticated() // MUST exist AFTER matchers, TODO - Is this true by DEFAULT?
                 )
-                .formLogin(Customizer.withDefaults());
+
+                // TODO - Logging for Authentication
+                .formLogin(httpSecurityFormLoginConfigurer -> httpSecurityFormLoginConfigurer
+                                .loginPage("/login").permitAll()
+                                .loginProcessingUrl("/authenticate") // default is /login for processing auth
+                                .usernameParameter("username")  // Must match HTML param
+                                .passwordParameter("password")
+                                .failureUrl("/login?error")
+                                .defaultSuccessUrl("/", false)      // Redirect after login->home (false by default)
+                        // .failureForwardUrl("")                                   // Handle Login Attempts
+                        // .successForwardUrl("")                                   // Handles Success Logic
+                )
+
+                .logout(logoutConfigurer -> logoutConfigurer
+                        .logoutUrl("/logout").permitAll()
+                        .invalidateHttpSession(true)
+                        .clearAuthentication(true)
+                        .deleteCookies("JSESSIONID", "remember-me")
+                        .logoutSuccessUrl("/login?logout")          // Redirect -> Login
+                )
+
+                .rememberMe(rememberMeConfigurer -> rememberMeConfigurer
+                        .key("some-secure-key")            // Some SECURE key
+                        .rememberMeParameter("remember-me")           // remember-me default
+                        .tokenValiditySeconds((int) TimeUnit.DAYS.toSeconds(24)) // 24 days
+                        .userDetailsService(userDetailsService) // Use Our CustomUser Implementation
+                )
+
+                .sessionManagement(session -> session
+                        // How long an inactive session lasts
+                        .invalidSessionUrl("/login?invalid")
+                        .maximumSessions(1)                 // 🔒 Max 1 concurrent session per user
+                        .maxSessionsPreventsLogin(false)     // false = old session invalidated
+                        .expiredUrl("/login?expired")        // redirect if user logs in elsewhere
+                );
+
 
         return httpSecurity.build();
-    }
-
-    // DEBUG USER - CREATION
-    @Bean
-    public UserDetailsService debugUserCreation(PasswordEncoder passwordEncoder) {
-
-        UserDetails user = User
-                .withUsername("Benny")
-                .password(passwordEncoder.encode("123"))
-                .authorities(UserRole.USER.getSimpleGrantedAuthorities())
-                .build();
-
-        UserDetails admin = User
-                .withUsername("Admin")
-                .password(passwordEncoder.encode("123"))
-                .authorities(UserRole.ADMIN.getSimpleGrantedAuthorities())
-                .build();
-
-        return new InMemoryUserDetailsManager(user, admin);
     }
 
 }

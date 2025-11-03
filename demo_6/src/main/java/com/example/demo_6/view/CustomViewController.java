@@ -1,14 +1,95 @@
 package com.example.demo_6.view;
+
+import com.example.demo_6.user.authority.UserRole;
+import com.example.demo_6.user.custom.CustomUser;
+import com.example.demo_6.user.custom.CustomUserRepository;
+import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+
+import java.util.Set;
 
 @Controller
 public class CustomViewController {
+
+    // TODO - Replace with Service in the future
+    private final CustomUserRepository customUserRepository;
+    private final PasswordEncoder passwordEncoder;
+
+    @Autowired
+    public CustomViewController(CustomUserRepository customUserRepository, PasswordEncoder passwordEncoder) {
+        this.customUserRepository = customUserRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
+
+    @GetMapping("/login")
+    public String loginPage() {
+
+        return "login";
+    }
+
+    @GetMapping("/logout")
+    public String logoutPage() {
+
+        return "logout";
+    }
 
     @GetMapping("/admin")
     public String adminPage() {
 
         return "adminpage"; // Must Reflect .html document name
+    }
+
+    @GetMapping("/user")
+    public String userPage() {
+
+        return "userpage";
+    }
+
+    // Responsible for Inserting CustomUser Entity (otherwise DTO)
+    @GetMapping("/register")
+    public String registerPage(Model model) {
+
+        // Best practice: id aka AttributeName should be the same as object name
+        model.addAttribute("customUser", new CustomUser());
+
+        return "registerpage";
+    }
+
+    // Handles Business Logic - coming from SUBMIT FORM
+    @PostMapping("/register")
+    public String registerUser(
+            @Valid CustomUser customUser, BindingResult bindingResult
+    ) {
+
+        if (bindingResult.hasErrors()) {
+            return "registerpage";
+        }
+
+        customUser.setPassword(
+                passwordEncoder.encode(customUser.getPassword())
+        );
+
+        // TODO - Object Mapper for shorter syntax
+        customUser.setAccountNonExpired(true);
+        customUser.setAccountNonLocked(true);
+        customUser.setCredentialsNonExpired(true);
+        customUser.setEnabled(true);
+
+        // TODO - Handle Roles Graciously
+        customUser.setUserRoles(
+                Set.of(UserRole.USER)
+        );
+
+        System.out.println("Saving user... ");
+        customUserRepository.save(customUser);
+
+        return "redirect:/login";
     }
 
 }

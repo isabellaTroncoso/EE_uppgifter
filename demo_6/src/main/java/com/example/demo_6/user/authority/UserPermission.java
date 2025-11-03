@@ -1,19 +1,23 @@
 package com.example.demo_6.user.authority;
 
+/* UserPermission - is a simple String that will be handled by Spring Security
+ *   If you want to add a new Permission, simply follow domain logic e.g:
+ *       TODO_READ, TODO_DELETE, USER_READ, USER_DELETE etc...
+ * */
+
 public enum UserPermission {
-    GET_TODO("GET_TODO"),
-    POST_TODO("POST_TODO"),
-    PUT_TODO("PUT_TODO"),
-    DELETE_TODO("DELETE_TODO"),
-    MANAGE_USERS("MANAGER_USERS");
 
-    private final String permission;
+    READ("READ"),
+    WRITE("WRITE"),
+    DELETE("DELETE");
 
-    UserPermission(String permission) {
-        this.permission = permission;
+    private final String userPermission;
+
+    UserPermission(String userPermission) {
+        this.userPermission = userPermission;
     }
 
-    public String getPermission() {
-        return permission;
+    public String getUserPermission() {
+        return userPermission;
     }
 }

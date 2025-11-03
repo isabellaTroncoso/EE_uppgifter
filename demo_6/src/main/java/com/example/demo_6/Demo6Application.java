@@ -1,6 +1,6 @@
 package com.example.demo_6;
 
-import com.example.demo_6.user.UserRole;
+import com.example.demo_6.user.authority.UserRole;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -11,9 +11,10 @@ public class Demo6Application {
 
 		SpringApplication.run(Demo6Application.class, args);
 
-		System.out.println(UserRole.GUEST.getSimpleGrantedAuthorities());
-		System.out.println(UserRole.USER.getSimpleGrantedAuthorities());
-		System.out.println(UserRole.ADMIN.getSimpleGrantedAuthorities());
+		System.out.println(UserRole.GUEST.getUserAuthorities());
+		System.out.println(UserRole.USER.getUserAuthorities());
+		System.out.println(UserRole.ADMIN.getUserAuthorities());
+
 	}
 
 }

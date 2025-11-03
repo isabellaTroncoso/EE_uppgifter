@@ -1,10 +1,15 @@
 package com.example.demo_6.user.authority;
 
+/* UserRole: Handles Authorities
+ *   Should contain both ROLE + PERMISSIONS
+ *   Should contain a way to return SimpleGrantedAuthority (Spring Class)
+ *   import static - removes the class requirement for Variables (no more dots)
+ *       NOTE: The class still exists, but is not necessary to call
+ * */
+
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import static com.example.demo_6.user.authority.UserPermission.*;
 
@@ -12,55 +17,56 @@ public enum UserRole {
 
     GUEST(
             UserRoleName.GUEST.getRoleName(),
-            Set.of(
-                    // PERMISSIONS
-            )
+            Set.of() // 0 Permissions // READ permission could be available here!
     ),
 
     USER(
             UserRoleName.USER.getRoleName(),
             Set.of(
-                    // PERMISSIONS
-                    GET_TODO,
-                    POST_TODO,
-                    DELETE_TODO,
-                    PUT_TODO)
+                    READ,
+                    WRITE
+            )
     ),
+
     ADMIN(
             UserRoleName.ADMIN.getRoleName(),
             Set.of(
-                    // PERMISSIONS
-                    MANAGE_USERS
-            ));
+                    READ,
+                    WRITE,
+                    DELETE
+            )
+    );
 
-    private final String userRoleName;
+    private final String roleName;
     private final Set<UserPermission> userPermissions;
 
-    UserRole(String userRoleName, Set<UserPermission> userPermissions) {
-        this.userRoleName = userRoleName;
+    UserRole(String roleName, Set<UserPermission> userPermissions) {
+        this.roleName = roleName;
         this.userPermissions = userPermissions;
     }
 
-    public String getUserRoleName() {
-        return userRoleName;
+    public String getRoleName() {
+        return roleName;
     }
 
     public Set<UserPermission> getUserPermissions() {
         return userPermissions;
     }
 
-    public List<SimpleGrantedAuthority> getSimpleGrantedAuthorities() {
+    // Get a LIST that Spring understands - containing both ROLE + PERMISSION
+    public List<SimpleGrantedAuthority> getUserAuthorities() {
 
-        List<SimpleGrantedAuthority> simpleGrantedAuthorityList = new ArrayList<>();
+        List<SimpleGrantedAuthority> authorityList = new ArrayList<>();
 
-        simpleGrantedAuthorityList.add(new SimpleGrantedAuthority(this.userRoleName));
-        simpleGrantedAuthorityList.addAll(
+        // this == the choice made after UserRole. (e.g: UserRole.ADMIN)
+        authorityList.add(new SimpleGrantedAuthority(this.roleName));
+        authorityList.addAll(
                 this.userPermissions.stream().map(
-                        userPermission -> new SimpleGrantedAuthority(userPermission.getPermission())
+                        userPermission -> new SimpleGrantedAuthority(userPermission.getUserPermission())
                 ).toList()
         );
 
-        return List.copyOf(simpleGrantedAuthorityList);
+        return authorityList;
     }
 
 }
