@@ -3,6 +3,7 @@ package com.example.demo_6;
 import com.example.demo_6.user.authority.UserRole;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import java.util.Arrays;
 
 @SpringBootApplication
 public class Demo6Application {

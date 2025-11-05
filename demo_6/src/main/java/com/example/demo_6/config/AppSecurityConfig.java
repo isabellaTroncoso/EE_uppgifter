@@ -2,6 +2,7 @@ package com.example.demo_6.config;
 
 import com.example.demo_6.user.authority.UserRole;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
@@ -17,13 +18,16 @@ import java.util.concurrent.TimeUnit;
 @EnableWebSecurity
 public class AppSecurityConfig {
 
-    private final PasswordEncoder passwordEncoder; // This will inject AppPasswordConfig BY DEFAULT (No Bean Collision)
     private final UserDetailsService userDetailsService;    // CustomUserDetailsService
+    private final String rememberMeKey;
 
     @Autowired
-    public AppSecurityConfig(PasswordEncoder passwordEncoder, UserDetailsService userDetailsService) {
-        this.passwordEncoder = passwordEncoder;
+    public AppSecurityConfig(
+            UserDetailsService userDetailsService,
+            @Value("{remember.me.key}") String rememberMeKey    // Constructor Param (property-driven) App.properties
+    ) {
         this.userDetailsService = userDetailsService;
+        this.rememberMeKey = rememberMeKey;
     }
 
     @Bean
@@ -68,7 +72,7 @@ public class AppSecurityConfig {
                 )
 
                 .rememberMe(rememberMeConfigurer -> rememberMeConfigurer
-                        .key("some-secure-key")            // Some SECURE key
+                        .key(rememberMeKey)            // Some SECURE key
                         .rememberMeParameter("remember-me")           // remember-me default
                         .tokenValiditySeconds((int) TimeUnit.DAYS.toSeconds(24)) // 24 days
                         .userDetailsService(userDetailsService) // Use Our CustomUser Implementation

@@ -1,5 +1,7 @@
 package com.example.demo_6.view;
 
+import com.example.demo_6.dto.CustomUserCreationDTO;
+import com.example.demo_6.mapper.CustomUserMapper;
 import com.example.demo_6.user.authority.UserRole;
 import com.example.demo_6.user.custom.CustomUser;
 import com.example.demo_6.user.custom.CustomUserRepository;
@@ -20,11 +22,14 @@ public class CustomViewController {
     // TODO - Replace with Service in the future
     private final CustomUserRepository customUserRepository;
     private final PasswordEncoder passwordEncoder;
+    private final CustomUserMapper customUserMapper;
 
     @Autowired
-    public CustomViewController(CustomUserRepository customUserRepository, PasswordEncoder passwordEncoder) {
+    public CustomViewController(CustomUserRepository customUserRepository,
+                                PasswordEncoder passwordEncoder, CustomUserMapper customUserMapper) {
         this.customUserRepository = customUserRepository;
         this.passwordEncoder = passwordEncoder;
+        this.customUserMapper = customUserMapper;
     }
 
     @GetMapping("/login")
@@ -64,18 +69,21 @@ public class CustomViewController {
     // Handles Business Logic - coming from SUBMIT FORM
     @PostMapping("/register")
     public String registerUser(
-            @Valid CustomUser customUser, BindingResult bindingResult
+            @Valid CustomUserCreationDTO customUserCreationDTO, BindingResult bindingResult
     ) {
 
         if (bindingResult.hasErrors()) {
             return "registerpage";
         }
 
+        CustomUser customUser = customUserMapper.toEntity(customUserCreationDTO);
+
         customUser.setPassword(
-                passwordEncoder.encode(customUser.getPassword())
+                customUser.getPassword(),
+                passwordEncoder
         );
 
-        // TODO - Object Mapper for shorter syntax
+        //TODO - Verification Process STATUS: Nice To Have
         customUser.setAccountNonExpired(true);
         customUser.setAccountNonLocked(true);
         customUser.setCredentialsNonExpired(true);
